@@ -86,10 +86,9 @@ export default class Auth {
         const ebayAuthToken = this.initEbayToken()
         const tokenJson = await ebayAuthToken.exchangeCodeForAccessToken('PRODUCTION', authorizationGrandCode);
         if (tokenJson.error) {
-            return "Failed to set keys!"
-        } else {
-            return JSON.parse(tokenJson).refresh_token
-        }
+            throw new Error(JSON.parse(tokenJson).error_description)
+        } 
+        return JSON.parse(tokenJson).refresh_token
     }
 
     async getToken() {

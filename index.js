@@ -17,7 +17,7 @@ app.listen(3000, async (a, b) => {
     const { fileName, confFile } = auth.getConfigFile()
 
     // Fot overriding arguments(testing)
-    // args[0] = 0
+    // args[0] = 6
 
     // Check if online
     try {

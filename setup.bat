@@ -122,11 +122,13 @@ GOTO MENU
 
 :TASK
 cls
-node index.js 6 > %interval% 
+node index.js 6 >> intervalTmp
+set /p interval= < intervalTmp 
+del intervalTmp
 if %taskStatus%==0 (
   schtasks /create /tn "EbayReducer" /st 12:00 /sc DAILY /mo %interval% /tr "%~dp0ebayReducer.bat"
 ) else (
-  schtasks /Delete /TN "EbayReducer" /F
+  schtasks /delete /tn "EbayReducer" /f
 )
 ping 127.0.0.1 -n 3 > nul
 GOTO MENU

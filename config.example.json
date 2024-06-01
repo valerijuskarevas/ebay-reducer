@@ -1,0 +1,5 @@
+{
+    "url": "https://api.ebay.com/ws/api.dll",
+    "invervalDays": "1",
+    "discount": "0.01"
+}

@@ -1,0 +1,19 @@
+{
+  "name": "ebay-reducer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.7.2",
+    "ebay-oauth-nodejs-client": "^1.2.2",
+    "express": "^4.19.2",
+    "xml-js": "^1.6.11"
+  },
+  "type": "module"
+}

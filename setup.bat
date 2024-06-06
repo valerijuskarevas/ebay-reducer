@@ -91,7 +91,7 @@ if %discount% GTR 1 GOTO DISCOUNT
 if %discount% LEQ 0 GOTO DISCOUNT
 node index.js 2 %interval% %discount%
 schtasks /create /tn "EbayReducerDaily" /st 12:00 /sc DAILY /mo %interval% /tr "%~dp0ebayReducer.bat"
-schtasks /create /tn "EbayReducerStart" /sc START /tr "%~dp0ebayReducer.bat"
+schtasks /create /tn "EbayReducerStart" /sc ONSTART /tr "%~dp0ebayReducer.bat"
 pause
 GOTO MENU
 
@@ -126,7 +126,7 @@ set /p interval= < intervalTmp
 del intervalTmp
 if %taskStatus%==0 (
   schtasks /create /tn "EbayReducerDaily" /st 12:00 /sc DAILY /mo %interval% /tr "%~dp0ebayReducer.bat"
-  schtasks /create /tn "EbayReducerStart" /sc START /tr "%~dp0ebayReducer.bat"
+  schtasks /create /tn "EbayReducerStart" /sc ONSTART /tr "%~dp0ebayReducer.bat"
 ) else (
   schtasks /delete /tn "EbayReducerDaily" /f
   schtasks /delete /tn "EbayReducerStart" /f

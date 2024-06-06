@@ -29,16 +29,28 @@ export default class Reporter {
         }
         fs.writeFileSync(fileName, '')
     }
-    reductionLog(item) {
+    reductionLog() {
+        const fileNameJson = `reductionLog.json`
         const fileName = `${path}/reductionLog.txt`
-        const time = new Date().toLocaleString('sv', { timeZoneName: 'short' });
-        const data = `---------------------------------------
-        ${time}
-        ${item.itemId}-${item.title}
-        Reduced from ${item.originalPrice} to ${item.newPrice}
-        `
-        const oldData = fs.readFileSync(fileName).toString()
-        const newData = data.replaceAll('        ', '') + oldData
-        fs.writeFileSync(fileName, newData)
+
+        const items = JSON.parse(fs.readFileSync(fileNameJson).toString())
+        let responseData = ''
+        for (const item of items) {
+            responseData += `---------------------------------------
+            ${item.reductionDateTime}
+            ${item.itemId}-${item.title}
+            Reduced from ${item.originalPrice} to ${item.newPrice}
+            `
+        }
+        fs.writeFileSync(fileName, responseData.replaceAll('        ', ''))
+    }
+    reductionJson(item) {
+        const fileName = `reductionLog.json`
+        const data = JSON.parse(fs.readFileSync(fileName).toString())
+
+        const newData = data.filter((i) => i.itemId != item.itemId)
+        newData.push(item)
+
+        fs.writeFileSync(fileName, JSON.stringify(newData))
     }
 }

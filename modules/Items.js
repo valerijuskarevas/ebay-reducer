@@ -2,6 +2,7 @@
 
 import Reporter from '../helpers/Reporter.js';
 import Auth from '../modules/Auth.js';
+import fs from 'fs';
 const auth = new Auth()
 
 export default class Items {
@@ -9,48 +10,43 @@ export default class Items {
   async getAllItems(pageSize = 1000) {
     const auth = new Auth()
 
-    // 100 days
-    var dateOffset = (24 * 60 * 60 * 1000) * 100; //5 days
-    var startDate = new Date();
-    startDate.setTime(startDate.getTime() - dateOffset);
-
     let respItems = []
     const pageCount = pageSize < 200 ? 1 : parseInt(pageSize / 200)
     for (let page = 1; page <= pageCount; page++) {
-      var xmlBodyStr = `<?xml version="1.0" encoding="utf-8"?>
-        <GetSellerListRequest xmlns="urn:ebay:apis:eBLBaseComponents">    
-            <ErrorLanguage>en_US</ErrorLanguage>
-            <WarningLevel>High</WarningLevel>
-             <!--You can use DetailLevel or GranularityLevel in a request, but not both-->
-          <GranularityLevel>Coarse</GranularityLevel> 
-             <!-- Enter a valid Time range to get the Items listed using this format
-                  2013-03-21T06:38:48.420Z -->
-          <StartTimeFrom>${startDate.toISOString()}</StartTimeFrom> 
-          <StartTimeTo>${new Date().toISOString()}</StartTimeTo> 
-          <IncludeWatchCount>true</IncludeWatchCount> 
-          <Pagination> 
-            <EntriesPerPage>${pageSize <= 200 ? pageSize : 200}</EntriesPerPage> 
-            <PageNumber>${page}</PageNumber>
-          </Pagination> 
-        </GetSellerListRequest>`;
 
-      const resp = await auth.callEbayApi("GetSellerList", xmlBodyStr)
-      const data = resp['GetSellerListResponse']
-      if (data && data['Errors']) {
-        if (data['Errors'].ErrorCode._text == 340) {
-          break
-        }
-        const error = data['Errors']['LongMessage']._text.replaceAll(' ', '^ ')
+      var xmlBodyStr = `
+      <?xml version="1.0" encoding="utf-8"?>
+      <GetMyeBaySellingRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+      <ActiveList>
+      <Sort>TimeLeft</Sort>
+          <Pagination> 
+          <EntriesPerPage>${pageSize <= 200 ? pageSize : 200}</EntriesPerPage> 
+          <PageNumber>${page}</PageNumber>
+          </Pagination> 
+      </ActiveList>
+      </GetMyeBaySellingRequest>
+    `
+
+      const resp = await auth.callEbayApi("GetMyeBaySelling", xmlBodyStr)
+
+
+      const data = resp['GetMyeBaySellingResponse']['ActiveList']
+      // Check errors or pagination end
+      if (resp && resp['GetMyeBaySellingResponse']['Errors']) {
+        const error = resp['GetMyeBaySellingResponse']['Errors']['LongMessage']._text.replaceAll(' ', '^ ')
         throw new Error(error)
+      } else if (!data) {
+        break
       }
+
       const items = Array.isArray(data.ItemArray.Item) ? data.ItemArray.Item : [data.ItemArray.Item]
       respItems = [...respItems, ...items]
     }
 
-    const activeItems = respItems.filter((i) => {
-      const ignore = i.SKU && i.SKU._text && i.SKU._text !== ''
-      return !ignore && i.SellingStatus.ListingStatus._text === "Active"
-    })
+    const activeItems = respItems.filter((i) =>
+      (i.SKU === undefined || (i.SKU._text && i.SKU._text.trim() === ''))
+      && (i.QuantityAvailable._text == 1)
+    )
 
     return activeItems.map((i) => {
       return {
@@ -82,6 +78,12 @@ export default class Items {
     reporter.reductionReset()
     for (const item of items) {
       const itemId = item.itemId
+
+      const needsReduction = this.checkIfNeedsReduction(itemId)
+      if (!needsReduction) {
+        continue
+      }
+
       const title = item.title
       const originalPrice = parseFloat(item.price.amount).toFixed(2)
       const newPrice = parseFloat(originalPrice - discount).toFixed(2)
@@ -97,10 +99,49 @@ export default class Items {
         itemId,
         title,
         originalPrice,
-        newPrice
+        newPrice,
+        reductionDateTime: new Date().toISOString()
       }
-      reporter.reductionLog(resp)
       console.log(resp)
+      reporter.reductionJson(resp)
     }
+    reporter.reductionLog()
+  }
+
+  checkIfNeedsReduction(itemId) {
+    const secondsToDay = (24 * 60 * 60 * 1000)
+    const auth = new Auth()
+    const { fileName, confFile } = auth.getConfigFile()
+    const reductionLogFileName = `reductionLog.json`
+
+    let log
+    try {
+      log = JSON.parse(fs.readFileSync(reductionLogFileName).toString())
+    } catch (e) {
+      if ((!fs.existsSync(reductionLogFileName))) {
+        fs.writeFileSync(reductionLogFileName, '[]', { recursive: true })
+      }
+      log = []
+    }
+
+    const item = log.filter((i) => i.itemId == itemId)[0]
+    if (!item) {
+      return true
+    }
+
+    let reductionTime = new Date(item.reductionDateTime)
+    reductionTime.setMinutes(0)
+    reductionTime.setSeconds(0)
+    reductionTime = reductionTime.getTime()
+
+    const currentTime = new Date().getTime()
+
+    let daysSinceLastReduction = (currentTime - reductionTime) / secondsToDay;
+
+    if (daysSinceLastReduction > confFile.invervalDays) {
+      return true
+    }
+    console.log(`${itemId} has been reduced in the last ${confFile.invervalDays} days`)
+    return false
   }
 }

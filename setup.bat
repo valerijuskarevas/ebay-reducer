@@ -90,9 +90,8 @@ set /p discount=Enter discount (0.00 - 1.00) :
 if %discount% GTR 1 GOTO DISCOUNT
 if %discount% LEQ 0 GOTO DISCOUNT
 node index.js 2 %interval% %discount%
-
-schtasks /create /tn "EbayReducer" /st 12:00 /sc DAILY /mo %interval% /tr "%~dp0ebayReducer.bat"
-
+schtasks /create /tn "EbayReducerDaily" /st 12:00 /sc DAILY /mo %interval% /tr "%~dp0ebayReducer.bat"
+schtasks /create /tn "EbayReducerStart" /sc START /tr "%~dp0ebayReducer.bat"
 pause
 GOTO MENU
 
@@ -126,9 +125,11 @@ node index.js 6 >> intervalTmp
 set /p interval= < intervalTmp 
 del intervalTmp
 if %taskStatus%==0 (
-  schtasks /create /tn "EbayReducer" /st 12:00 /sc DAILY /mo %interval% /tr "%~dp0ebayReducer.bat"
+  schtasks /create /tn "EbayReducerDaily" /st 12:00 /sc DAILY /mo %interval% /tr "%~dp0ebayReducer.bat"
+  schtasks /create /tn "EbayReducerStart" /sc START /tr "%~dp0ebayReducer.bat"
 ) else (
-  schtasks /delete /tn "EbayReducer" /f
+  schtasks /delete /tn "EbayReducerDaily" /f
+  schtasks /delete /tn "EbayReducerStart" /f
 )
 ping 127.0.0.1 -n 3 > nul
 GOTO MENU

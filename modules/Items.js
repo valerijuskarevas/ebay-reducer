@@ -109,14 +109,19 @@ export default class Items {
               </InventoryStatus>
             </ReviseInventoryStatusRequest>`;
 
-      // Check error
+      // Handle errors
       const ebayResp = await auth.callEbayApi("ReviseInventoryStatus", xmlBodyStr)
       if (ebayResp && ebayResp['ReviseInventoryStatusResponse']['Errors']) {
-        const error = ebayResp['ReviseInventoryStatusResponse']['Errors']['LongMessage']._text.replaceAll(' ', '^ ')
-        reporter.logError(error)
-
-        console.log(`${title} (${ebayResp['ReviseInventoryStatusResponse']['Errors']['ShortMessage']._text.replaceAll(' ', '^ ')})`)
-        continue
+        let errors = [ebayResp['ReviseInventoryStatusResponse']['Errors']]
+        if (Array.isArray(ebayResp['ReviseInventoryStatusResponse']['Errors'])) {
+          errors = ebayResp['ReviseInventoryStatusResponse']['Errors']
+        }
+        const severeErrors = errors.filter((i) => i.SeverityCode._text === 'Error')
+        if (severeErrors.length > 0) {
+          const errorString = severeErrors[0]['LongMessage']._text.replaceAll(' ', '^ ')
+          reporter.logError(`Item ID: ${itemId} \n Item Title: ${title} \n Error:${errorString}`)
+          continue
+        }
       }
 
       const reductionDateTime = new Date().toLocaleString('lt-LT', { timeZone: 'Europe/Vilnius' }).replace(' ', 'T')

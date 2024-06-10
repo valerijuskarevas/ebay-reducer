@@ -17,7 +17,7 @@ app.listen(3000, async (a, b) => {
     const { fileName, confFile } = auth.getConfigFile()
 
     // Fot overriding arguments(testing)
-    // args[0] = 4
+    // args[0] = 5
 
     // Check if online
     try {
@@ -77,7 +77,7 @@ app.listen(3000, async (a, b) => {
 
         // Bulk reduce price
         if (args[0] == 5) {
-            console.log("Reducing item price by " + confFile.discount);
+            console.log("Reducing item price by " + confFile.discount + "\n");
             await items.bulkDiscount(confFile.discount);
         }
 
@@ -85,6 +85,17 @@ app.listen(3000, async (a, b) => {
         if (args[0] == 6) {
             console.log(confFile.invervalDays ? confFile.invervalDays : 1)
         }
+
+        // Check is needs recudtion
+        if (args[0] == 7) {
+            await items.checkTotals(confFile.discount);
+        }
+
+        // Check is needs reduction
+        if (args[0] == 8) {
+            await auth.generateScheduledTaskXML();
+        }
+
     } catch (e) {
         reporter.logError(e.message)
         console.log(e.message)

@@ -87,7 +87,7 @@ export default class Auth {
         const tokenJson = await ebayAuthToken.exchangeCodeForAccessToken('PRODUCTION', authorizationGrandCode);
         if (tokenJson.error) {
             throw new Error(JSON.parse(tokenJson).error_description)
-        } 
+        }
         return JSON.parse(tokenJson).refresh_token
     }
 
@@ -96,5 +96,23 @@ export default class Auth {
         const ebayAuthToken = this.initEbayToken()
         const tokenData = await ebayAuthToken.getAccessToken('PRODUCTION', confFile.auth.refreshToken, scopes);
         return JSON.parse(tokenData).access_token
+    }
+
+    async generateScheduledTaskXML() {
+        const confFile = JSON.parse(readFileSync(fileName))
+        var content = fs.readFileSync('./templates/EbayReducerDailyTemplate.xml', { encoding: 'utf16le' });
+        const dateTime = new Date()
+        dateTime.setDate(dateTime.getDay() + 1);
+        dateTime.setHours(12, 0, 0, 0);
+        const date = dateTime.toLocaleString('lt-LT', { timeZone: 'Europe/Vilnius' }).replace(' ', 'T')
+        content = content.replace('{startDateTime}', date)
+
+        const interval = confFile.invervalDays
+        content = content.replace('{interval}', interval)
+
+        const filePath = path.resolve('./ebayReducer.bat')
+        content = content.replace('{path}', filePath)
+
+        fs.writeFileSync('EbayReducerDaily.xml', content, { encoding: 'utf16le' });
     }
 }

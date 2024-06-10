@@ -74,38 +74,83 @@ export default class Items {
   async bulkDiscount(discount) {
     const items = await this.getAllItems()
     const reporter = new Reporter()
-    console.log('Starting reduction')
-    reporter.reductionReset()
-    for (const item of items) {
-      const itemId = item.itemId
 
-      const needsReduction = this.checkIfNeedsReduction(itemId)
-      if (!needsReduction) {
-        continue
+    let itemsToReduceCount = 0
+    const itemsToReduce = []
+
+    for (const item of items) {
+      const needsReduction = this.checkIfNeedsReduction(item.itemId)
+      if (needsReduction) {
+        itemsToReduce.push(item)
+        itemsToReduceCount++
       }
+    }
+
+    console.log('Total without SKU: ' + items.length)
+    console.log('Needs reduction: ' + itemsToReduce.length + '\n')
+
+    reporter.reductionReset()
+
+    let count = 0
+    let reducedCount = 0
+    for (const item of itemsToReduce) {
+      let itemId = item.itemId
+      count++
+      console.log(`Reducing ${count} of ${itemsToReduce.length}`)
 
       const title = item.title
       const originalPrice = parseFloat(item.price.amount).toFixed(2)
       const newPrice = parseFloat(originalPrice - discount).toFixed(2)
-      var xmlBodyStr = `    <?xml version="1.0" encoding="utf-8"?>
+      const xmlBodyStr = `    <?xml version="1.0" encoding="utf-8"?>
             <ReviseInventoryStatusRequest xmlns="urn:ebay:apis:eBLBaseComponents">
               <InventoryStatus> InventoryStatusType
                 <ItemID>${itemId}</ItemID>
                 <StartPrice>${newPrice}</StartPrice>
               </InventoryStatus>
             </ReviseInventoryStatusRequest>`;
-      await auth.callEbayApi("ReviseInventoryStatus", xmlBodyStr)
+
+      // Check error
+      const ebayResp = await auth.callEbayApi("ReviseInventoryStatus", xmlBodyStr)
+      if (ebayResp && ebayResp['ReviseInventoryStatusResponse']['Errors']) {
+        const error = ebayResp['ReviseInventoryStatusResponse']['Errors']['LongMessage']._text.replaceAll(' ', '^ ')
+        reporter.logError(error)
+
+        console.log(`${title} (${ebayResp['ReviseInventoryStatusResponse']['Errors']['ShortMessage']._text.replaceAll(' ', '^ ')})`)
+        continue
+      }
+
+      const reductionDateTime = new Date().toLocaleString('lt-LT', { timeZone: 'Europe/Vilnius' }).replace(' ', 'T')
       const resp = {
         itemId,
         title,
         originalPrice,
         newPrice,
-        reductionDateTime: new Date().toISOString()
+        reductionDateTime
       }
-      console.log(resp)
+      console.log(`${title} (${originalPrice} -> ${newPrice})`)
       reporter.reductionJson(resp)
+      reducedCount++
     }
+    console.log(`\nReduced listings: ${reducedCount} of ${itemsToReduce.length}`)
     reporter.reductionLog()
+  }
+
+  async checkTotals() {
+    const items = await this.getAllItems()
+    let reductionLength = 0
+    for (const item of items) {
+      const itemId = item.itemId
+      const needsReduction = this.checkIfNeedsReduction(itemId)
+      if (!needsReduction) {
+        continue
+      }
+      reductionLength++
+    }
+    if (reductionLength === 0) {
+      console.log("SUCCESS")
+    } else {
+      console.log("FAILURE")
+    }
   }
 
   checkIfNeedsReduction(itemId) {
@@ -141,7 +186,7 @@ export default class Items {
     if (daysSinceLastReduction > confFile.invervalDays) {
       return true
     }
-    console.log(`${itemId} has been reduced in the last ${confFile.invervalDays} days`)
+    // console.log(`${itemId} has been reduced in the last ${confFile.invervalDays} days`)
     return false
   }
 }

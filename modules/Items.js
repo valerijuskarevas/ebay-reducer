@@ -32,7 +32,7 @@ export default class Items {
       const data = resp['GetMyeBaySellingResponse']['ActiveList']
       // Check errors or pagination end
 
-      if (ebayResp && resp['GetMyeBaySellingResponse']['Errors']) {
+      if (resp && resp['GetMyeBaySellingResponse']['Errors']) {
         let errors = [resp['GetMyeBaySellingResponse']['Errors']]
         if (Array.isArray(resp['GetMyeBaySellingResponse']['Errors'])) {
           errors = resp['GetMyeBaySellingResponse']['Errors']

@@ -29,12 +29,15 @@ export default class Items {
 
       const resp = await auth.callEbayApi("GetMyeBaySelling", xmlBodyStr)
 
-
       const data = resp['GetMyeBaySellingResponse']['ActiveList']
       // Check errors or pagination end
-      if (resp && resp['GetMyeBaySellingResponse']['Errors']) {
-        const error = resp['GetMyeBaySellingResponse']['Errors']['LongMessage']._text.replaceAll(' ', '^ ')
-        throw new Error(error)
+
+      if (ebayResp && resp['GetMyeBaySellingResponse']['Errors']) {
+        let errors = [resp['GetMyeBaySellingResponse']['Errors']]
+        if (Array.isArray(resp['GetMyeBaySellingResponse']['Errors'])) {
+          errors = resp['GetMyeBaySellingResponse']['Errors']
+        }
+        throw new Error(errors[0]['LongMessage']._text.replaceAll(' ', '^ '))
       } else if (!data) {
         break
       }

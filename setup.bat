@@ -9,6 +9,7 @@ if %errorLevel% == 0 (
   GOTO MENU
 ) else (
   echo Failure: Run the application as administrator!.
+  pause
   GOTO END
 )
 
@@ -102,8 +103,8 @@ set /p discount=Enter discount (0.00 - 1.00) :
 if %discount% GTR 1 GOTO DISCOUNT
 if %discount% LEQ 0 GOTO DISCOUNT
 node index.js 2 %interval% %discount%
-
 node index.js 8
+schtasks /delete /tn "EbayReducer" /f
 schtasks /create /xml "EbayReducerDaily.xml" /tn "EbayReducer"
 
 pause

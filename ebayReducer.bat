@@ -3,7 +3,7 @@
 :MENU
 cls
 echo Loading...
-cd "%~dp0"
+cd /d "%~dp0"
 node "index.js" 0 >> statusTmp
 
 cls

@@ -65,9 +65,12 @@ export default class Auth {
         const content = await itemCtrl.getAllItems(1);
 
         if (content && content['Errors']) {
-            const resp = content['Errors']['LongMessage']._text
-            return `${resp.replaceAll(' ', '^ ')}`
-        }
+            let errors = [resp['Errors']]
+            if (Array.isArray(resp['Errors'])) {
+              errors = resp['Errors']
+            }
+            return errors[0]['LongMessage']._text.replaceAll(' ', '^ ')
+          }
         return 'ONLINE'
     }
 
